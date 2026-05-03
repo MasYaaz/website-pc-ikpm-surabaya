@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
@@ -14,7 +14,7 @@ export const actions: Actions = {
 
 		// 2. Proses Login menggunakan Supabase Auth
 		// Supabase secara otomatis mengelola session dan set-cookie di browser
-		const { error } = await supabase.auth.signInWithPassword({
+		const { data, error } = await supabase.auth.signInWithPassword({
 			email,
 			password
 		});
@@ -25,6 +25,9 @@ export const actions: Actions = {
 			return fail(400, { message: 'Email atau password salah' });
 		}
 
-		throw redirect(302, '/contributor/dashboard');
+		const user = data.user;
+		const displayName = user.user_metadata?.display_name;
+
+		return { success: true, message: `Login berhasil, Selamat Datang ${displayName}!` };
 	}
 };

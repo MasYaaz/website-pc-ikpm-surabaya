@@ -27,6 +27,7 @@ export const actions: Actions = {
 		});
 
 		if (error) {
+			console.log(error.message);
 			return fail(400, { message: error.message || 'Gagal mendaftar' });
 		}
 

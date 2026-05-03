@@ -2,36 +2,43 @@ import { redirect } from '@sveltejs/kit';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals, url }) => {
-	// 1. Ambil data user dari locals (sudah di-set oleh hooks)
-	const user = locals.user;
+	const user = locals.user; // Data dari hooks + Netlify Blobs
 	const isLoggedIn = !!user;
-
 	const pathname = url.pathname;
 
 	// --- LOGIKA REDIRECT ---
 
-	// A. Jika akses root '/contributor', arahkan berdasarkan status login
+	// 1. Jika akses root '/contributor', arahkan ke dashboard atau login
 	if (pathname === '/contributor' || pathname === '/contributor/') {
 		if (!isLoggedIn) {
 			throw redirect(302, '/contributor/login');
-		} else {
-			throw redirect(302, '/contributor/dashboard');
+		}
+		throw redirect(302, '/contributor/dashboard');
+	}
+
+	// 2. Proteksi Grup Rute Internal (/dashboard, /posts, /options)
+	const isInternalRoute =
+		pathname.startsWith('/contributor/dashboard') ||
+		pathname.startsWith('/contributor/posts') ||
+		pathname.startsWith('/contributor/options');
+
+	if (isInternalRoute) {
+		if (!isLoggedIn) {
+			throw redirect(302, '/contributor/login');
+		}
+
+		// Validasi status akun dari cache/DB
+		if (user.status === 'nonactive') {
+			throw redirect(302, '/contributor/onboarding');
 		}
 	}
 
-	// B. Proteksi Dashboard: Jika belum login tapi coba akses /dashboard
-	// Catatan: Sebaiknya proteksi ini juga ada di hooks agar lebih aman
-	if (pathname.startsWith('/contributor/dashboard') && !isLoggedIn) {
-		throw redirect(302, '/contributor/login');
-	}
-
-	// C. Proteksi Auth Pages: Jika SUDAH login tapi coba akses /login atau /registrasi
-	const isAuthPage = pathname.includes('/login') || pathname.includes('/registrasi');
+	// 3. Proteksi Halaman Auth (Login/Registrasi)
+	const isAuthPage = pathname.endsWith('/login') || pathname.endsWith('/registrasi');
 	if (isAuthPage && isLoggedIn) {
 		throw redirect(302, '/contributor/dashboard');
 	}
 
-	// Kirim data user ke layout agar bisa dipakai UI (Navbar, Sidebar, dll)
 	return {
 		user
 	};

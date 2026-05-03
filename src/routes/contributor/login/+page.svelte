@@ -12,9 +12,6 @@
 	// Svelte 5 Props Rune
 	let { form } = $props();
 
-	// Svelte 5 State Rune
-	let loading = $state(false);
-
 	interface FormData {
 		email: string;
 		password: string;
@@ -111,18 +108,11 @@
 
 			<button
 				type="submit"
-				disabled={loading}
 				class="group relative mt-2 w-full overflow-hidden rounded-xl bg-green-900 py-4 font-bold text-white transition-all hover:bg-green-950 active:scale-[0.98] disabled:opacity-70"
 			>
 				<div class="flex items-center justify-center gap-2">
-					{#if loading}
-						<div
-							class="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"
-						></div>
-					{:else}
-						<span>Masuk Ke Panel</span>
-						<ArrowRight size={18} class="transition-transform group-hover:translate-x-1" />
-					{/if}
+					<span>Masuk Ke Dashboard</span>
+					<ArrowRight size={18} class="transition-transform group-hover:translate-x-1" />
 				</div>
 			</button>
 		</form>
@@ -172,7 +162,7 @@
 
 		<p class="mt-8 text-center text-xs font-medium text-green-900/80">
 			Belum punya akun? <a
-				href="/kontributor/registrasi"
+				href="/contributor/registrasi"
 				class="font-bold text-green-900 hover:underline">Registrasi</a
 			>
 		</p>

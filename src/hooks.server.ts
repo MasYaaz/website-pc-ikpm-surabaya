@@ -56,10 +56,21 @@ const handleSupabaseAuth: Handle = async ({ event, resolve }) => {
 			const profileStore = getStore('user-profiles');
 
 			// 3. Cek Cache di Netlify Blobs
-			let profileData = await profileStore.get(cacheKey, { type: 'json' });
+			let cachedData = await profileStore.get(cacheKey, { type: 'json' });
+			let profileData = null;
 
-			// 4. Jika cache kosong/expired (lewat 10 menit), ambil dari Database
-			if (!profileData) {
+			const now = Date.now();
+
+			// 2. Validasi Expired (Cek apakah data ada dan belum lewat 10 menit)
+			if (cachedData && cachedData.expiresAt > now) {
+				profileData = cachedData.data;
+			} else {
+				// 3. Jika Expired atau data tidak ada, hapus blob lama (cleanup)
+				if (cachedData) {
+					await profileStore.delete(cacheKey);
+				}
+
+				// 4. Ambil data segar dari Database Supabase
 				const { data: profile } = await event.locals.supabase
 					.from('profiles')
 					.select('role, avatar_url, status')
@@ -68,9 +79,10 @@ const handleSupabaseAuth: Handle = async ({ event, resolve }) => {
 
 				if (profile) {
 					profileData = profile;
-					// Simpan ke cache Blobs dengan TTL 10 menit
-					await profileStore.setJSON(cacheKey, profile, {
-						metadata: { expires: Date.now() + 10 * 60 * 1000 }
+					// 5. Simpan ke cache Blobs dengan TTL 10 Menit
+					await profileStore.setJSON(cacheKey, {
+						data: profile,
+						expiresAt: now + 10 * 60 * 1000 // 10 menit dari sekarang
 					});
 				}
 			}

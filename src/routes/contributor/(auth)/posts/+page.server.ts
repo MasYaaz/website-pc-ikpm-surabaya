@@ -1,43 +1,41 @@
-import { posts } from '$lib/server/db/schema';
-import { desc, eq } from 'drizzle-orm'; // Tambahkan eq
-import { setRole } from '$lib/utils/setRole';
-import type { PostWithAuthor } from '$lib/types';
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from '../../$types';
+import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	// 1. Ambil session dari Better Auth
-	const { user } = locals;
+	const { supabase, user } = locals;
 
-	// Proteksi tambahan: Jika tidak ada user, jangan jalankan query
-	if (!user || !user.id) {
+	// 1. Proteksi: Pastikan user terautentikasi (Sudah divalidasi di hooks via getUser)
+	if (!user) {
 		throw error(401, 'Unauthorized: Silakan login terlebih dahulu');
 	}
 
-	const userId = user.id;
-	const userRole = user.role ?? 'editor';
+	// 2. Jalankan query menggunakan Supabase Client
+	// Supabase secara otomatis akan menerapkan RLS berdasarkan 'user.id' jika sudah diset di DB
+	const { data: contributorPosts, error: dbError } = await supabase
+		.from('posts')
+		.select(
+			`
+            *,
+            author:author_id (
+                name:display_name, 
+                avatar_url,
+                role
+            ),
+            featuredImage:featured_image_id (
+                path,
+                alt_text
+            )
+        `
+		)
+		.eq('author_id', user.id) // Filter manual tetap bagus untuk kejelasan
+		.order('created_at', { ascending: false });
 
-	// 2. Jalankan query dengan context RLS
-	const contributorPosts: PostWithAuthor[] = await setRole(userId, userRole, async (tx) => {
-		return await tx.query.posts.findMany({
-			// FILTER: Hanya ambil post milik user ini
-			where: eq(posts.authorId, userId),
-			with: {
-				author: {
-					columns: { name: true, image: true, role: true }
-				},
-				featuredImage: {
-					columns: {
-						path: true,
-						altText: true
-					}
-				}
-			},
-			orderBy: [desc(posts.createdAt)]
-		});
-	});
+	if (dbError) {
+		console.error('Error fetching contributor posts:', dbError);
+		throw error(500, 'Gagal mengambil data postingan Anda');
+	}
 
 	return {
-		posts: contributorPosts
+		posts: contributorPosts ?? []
 	};
 };

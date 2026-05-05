@@ -62,15 +62,18 @@ const handleSupabaseAuth: Handle = async ({ event, resolve }) => {
 			const now = Date.now();
 
 			// 2. Validasi Expired (Cek apakah data ada dan belum lewat 10 menit)
-			if (cachedData && cachedData.expiresAt > now) {
+			// MODIFIKASI: Tambahkan pengecekan status pada cachedData
+			// Jika data ada, belum expired, DAN statusnya sudah 'active', gunakan cache.
+			// Jika statusnya 'nonactive', kita abaikan cache dan fetch ulang ke Supabase.
+			if (cachedData && cachedData.expiresAt > now && cachedData.data?.status === 'active') {
 				profileData = cachedData.data;
 			} else {
-				// 3. Jika Expired atau data tidak ada, hapus blob lama (cleanup)
+				// Hapus cache lama jika expired atau jika kita ingin memaksa fetch ulang (karena nonactive)
 				if (cachedData) {
 					await profileStore.delete(cacheKey);
 				}
 
-				// 4. Ambil data segar dari Database Supabase
+				// Ambil data segar dari Database Supabase
 				const { data: profile } = await event.locals.supabase
 					.from('profiles')
 					.select('role, avatar_url, status')
@@ -79,10 +82,13 @@ const handleSupabaseAuth: Handle = async ({ event, resolve }) => {
 
 				if (profile) {
 					profileData = profile;
-					// 5. Simpan ke cache Blobs dengan TTL 10 Menit
+
+					// Simpan ke cache Blobs
+					// Data akan tersimpan di cache (dan akan langsung dipakai di request berikutnya)
+					// HANYA JIKA statusnya sudah 'active'.
 					await profileStore.setJSON(cacheKey, {
 						data: profile,
-						expiresAt: now + 10 * 60 * 1000 // 10 menit dari sekarang
+						expiresAt: now + 10 * 60 * 1000
 					});
 				}
 			}

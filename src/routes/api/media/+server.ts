@@ -52,6 +52,7 @@ export const POST = async ({ request, locals: { supabase, user } }) => {
 
 		return json(newMedia);
 	} catch (err) {
+		console.log(err);
 		return json({ error: 'Upload failed' }, { status: 500 });
 	}
 };

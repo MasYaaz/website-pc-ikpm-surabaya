@@ -51,9 +51,9 @@
 	{#if featuredPosts.length > 0}
 		<section class="relative h-137.5 w-full overflow-hidden bg-stone-950">
 			{#key currentSlide}
-				<div in:fade={{ duration: 800 }} out:fade={{ duration: 400 }} class="absolute inset-0">
+				<div in:fade={{ duration: 800 }} out:fade={{ duration: 400 }} class="absolute inset-0 z-5">
 					<div
-						class="absolute inset-0 z-10 bg-linear-to-r from-stone-950 via-stone-950/40 to-transparent"
+						class="absolute inset-0 z-5 bg-linear-to-r from-stone-950 via-stone-950/40 to-transparent"
 					></div>
 
 					<img
@@ -62,7 +62,7 @@
 						class="absolute inset-0 flex h-full w-full items-center justify-center bg-stone-900 object-cover"
 					/>
 
-					<div class="relative z-20 mx-auto flex h-full max-w-7xl flex-col justify-center px-6">
+					<div class="relative z-5 mx-auto flex h-full max-w-7xl flex-col justify-center px-6">
 						<div in:fly={{ x: -40, duration: 800, delay: 150 }} class="max-w-2xl">
 							<span
 								class="mb-4 inline-block rounded-full bg-indigo-500/20 px-4 py-1 text-[10px] font-black tracking-widest text-indigo-400 uppercase"
@@ -120,7 +120,7 @@
 							<img
 								src={post.featuredImage?.path}
 								alt={post.featuredImage?.alt_text}
-								class="flex h-full w-full items-center justify-center text-stone-200 transition-transform duration-700 group-hover:scale-110 group-hover:text-stone-300"
+								class="flex h-full w-full items-center justify-center object-cover text-stone-200 transition-transform duration-700 group-hover:scale-110 group-hover:text-stone-300"
 							/>
 
 							{#if post.status !== 'publish'}
@@ -175,7 +175,7 @@
 								</div>
 								<div class="flex flex-col leading-tight">
 									<span class="text-[10px] font-bold tracking-tight text-stone-400 uppercase"
-										>Staff Researcher</span
+										>Contributor</span
 									>
 									<span class="text-sm font-bold text-stone-800"
 										>{post.author?.name || 'Anonymous'}</span

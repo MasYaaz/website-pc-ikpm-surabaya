@@ -69,8 +69,8 @@
 
 			// 3. Jalankan onUpdate jika ada (biasanya untuk trigger notifikasi atau refresh komponen lain)
 			if (onUpdate) onUpdate();
-		} catch (e) {
-			console.error('Konversi WebP atau Upload gagal:', e);
+		} catch (error) {
+			console.error('Konversi WebP atau Upload gagal:', error);
 			alert('Gagal mengonversi gambar ke WebP atau upload.');
 		} finally {
 			isLoadingMedia = false;

@@ -1,29 +1,36 @@
-import { db } from '$lib/server/db';
-import { posts } from '$lib/server/db/schema';
-import { requireAuth } from '$lib/utils/requireAuth';
 import { error, fail, redirect } from '@sveltejs/kit';
-import { eq, and } from 'drizzle-orm';
 import slugify from 'slugify';
 
-// 1. LOAD DATA: Mengambil data artikel untuk ditampilkan di form
+// 1. LOAD DATA: Mengambil data artikel
 export const load = async ({ params, locals }) => {
-	const session = await requireAuth(locals);
-	const postId = Number(params.id);
+	// Menggunakan data user yang sudah diolah oleh hooks (Blobs/Cache)
+	const user = locals.user;
+	const postId = params.id;
 
-	if (isNaN(postId)) throw error(400, 'ID Post tidak valid');
+	if (!user) return fail(401, { message: 'Unauthorized' });
+	if (!postId) throw error(400, 'ID Post tidak valid');
 
-	// Ambil data post dan join dengan media untuk thumbnail
-	const postData = await db.query.posts.findFirst({
-		where: (posts, { eq }) => eq(posts.id, postId),
-		with: {
-			featuredImage: true
-		}
-	});
+	// Ambil data post menggunakan Supabase Query
+	const { data: postData, error: fetchError } = await locals.supabase
+		.from('posts')
+		.select(
+			`
+            *,
+            featuredImage:media(*) 
+        `
+		)
+		.eq('id', postId)
+		.single();
 
-	if (!postData) throw error(404, 'Artikel tidak ditemukan');
+	if (fetchError || !postData) {
+		throw error(404, 'Artikel tidak ditemukan');
+	}
 
-	// Proteksi: Hanya author yang bisa edit artikelnya sendiri
-	if (postData.authorId !== session.user.id) {
+	// Proteksi: Hanya author atau Admin yang bisa edit
+	const isOwner = postData.author_id === user.id;
+	const isAdmin = user.role === 'admin';
+
+	if (!isOwner && !isAdmin) {
 		throw error(403, 'Anda tidak memiliki akses untuk menyunting artikel ini');
 	}
 
@@ -32,18 +39,19 @@ export const load = async ({ params, locals }) => {
 	};
 };
 
-// 2. ACTIONS: Menangani pengiriman form (Update & Delete)
+// 2. ACTIONS: Update & Delete
 export const actions = {
-	// Action untuk Update Artikel
 	update: async ({ request, params, locals }) => {
-		// 1. Ambil user dengan destructuring
-		const { user } = await requireAuth(locals);
-		const postId = Number(params.id);
+		const user = locals.user;
+		const postId = params.id;
+
+		if (!user) return fail(401, { message: 'Unauthorized' });
+		if (user.status === 'nonactive') return fail(403, { message: 'Akun belum aktif.' });
 
 		const formData = await request.formData();
-		const title = formData.get('title') as string;
-		const content = formData.get('content') as string;
-		const excerpt = formData.get('excerpt') as string;
+		const title = (formData.get('title') as string)?.trim();
+		const content = (formData.get('content') as string)?.trim();
+		const excerpt = (formData.get('excerpt') as string)?.trim();
 		const status = formData.get('status') as 'draft' | 'publish';
 		const featuredImageId = formData.get('featuredImageId');
 
@@ -51,45 +59,52 @@ export const actions = {
 			return fail(400, { message: 'Judul dan konten tidak boleh kosong.' });
 		}
 
-		const newSlug = slugify(title, { lower: true });
+		const newSlug =
+			slugify(title, { lower: true, strict: true }) + '-' + Math.random().toString(36).slice(-4);
 
-		try {
-			// Gunakan user.id (bukan session.user.id)
-			await db
-				.update(posts)
-				.set({
-					title,
-					slug: newSlug,
-					content,
-					excerpt,
-					status,
-					featuredImageId: featuredImageId ? Number(featuredImageId) : null,
-					updatedAt: new Date()
-				})
-				.where(and(eq(posts.id, postId), eq(posts.authorId, user.id)));
-		} catch (err) {
-			console.error('Update Error:', err);
-			return fail(500, { message: 'Gagal memperbarui artikel.' });
+		// Update menggunakan Supabase
+		// RLS akan memastikan hanya owner/admin yang bisa melakukan ini jika sudah diset di DB
+		const { error: updateError } = await locals.supabase
+			.from('posts')
+			.update({
+				title,
+				slug: newSlug,
+				content,
+				excerpt: excerpt || null,
+				status: status || 'draft',
+				featured_image_id: featuredImageId ? featuredImageId : null,
+				updated_at: new Date().toISOString()
+			})
+			.eq('id', postId)
+			.eq(user.role !== 'admin' ? 'author_id' : 'id', user.role !== 'admin' ? user.id : postId);
+		// ^ Logika tambahan jika RLS belum mencakup Admin bypass
+
+		if (updateError) {
+			console.error('Update Error:', updateError);
+			return fail(500, { message: 'Gagal memperbarui artikel di Supabase.' });
 		}
 
-		// REDIRECT HARUS DI LUAR TRY/CATCH
 		throw redirect(303, '/contributor/posts');
 	},
 
-	// Action tambahan jika kamu ingin ada tombol hapus di halaman edit
 	delete: async ({ params, locals }) => {
-		const { user } = await requireAuth(locals);
-		const postId = Number(params.id); // Diambil otomatis dari URL /posts/1
+		const user = locals.user;
+		const postId = params.id;
 
-		if (isNaN(postId)) return fail(400, { message: 'ID tidak valid' });
+		if (!user) return fail(401, { message: 'Unauthorized' });
 
-		try {
-			await db.delete(posts).where(and(eq(posts.id, postId), eq(posts.authorId, user.id)));
-		} catch (err) {
-			console.error('Delete Error:', err);
+		// Delete menggunakan Supabase
+		const { error: deleteError } = await locals.supabase
+			.from('posts')
+			.delete()
+			.eq('id', postId)
+			.eq(user.role !== 'admin' ? 'author_id' : 'id', user.role !== 'admin' ? user.id : postId);
+
+		if (deleteError) {
+			console.error('Delete Error:', deleteError);
 			return fail(500, { message: 'Gagal menghapus artikel.' });
 		}
 
-		return { success: true };
+		throw redirect(303, '/contributor/posts');
 	}
 };

@@ -11,9 +11,17 @@
 		slug: string;
 		excerpt: string | null;
 		status: string;
+		featured_image: {
+			path: string;
+			alt: string;
+		};
+		author: {
+			name: string;
+			avatar_url: string;
+		};
 	}
 
-	let { data, isSidebarOpen = $bindable() } = $props();
+	let { isSidebarOpen = $bindable() } = $props();
 
 	// State untuk scroll position
 	let y = $state(0);
@@ -26,6 +34,9 @@
 	let searchResults = $state<SearchResult[]>([]);
 	let isSearching = $state(false);
 	let showDropdown = $state(false);
+
+	// Variabel untuk menyimpan timer debounce
+	let debounceTimer: ReturnType<typeof setTimeout>;
 
 	async function performSearch() {
 		if (searchQuery.length < 2) {
@@ -49,9 +60,31 @@
 		}
 	}
 
+	// Fungsi handleInput yang akan memicu debounce
+	function handleSearchInput() {
+		// Hapus timer sebelumnya jika user masih mengetik
+		clearTimeout(debounceTimer);
+
+		if (searchQuery.length < 2) {
+			searchResults = [];
+			showDropdown = false;
+			return;
+		}
+
+		// Tampilkan loader segera setelah mengetik agar UX terasa responsif
+		isSearching = true;
+		showDropdown = true;
+
+		// Atur timer baru (500ms adalah angka standar yang nyaman)
+		debounceTimer = setTimeout(() => {
+			performSearch();
+		}, 500);
+	}
+
 	function closeSearch() {
 		showDropdown = false;
 		searchQuery = '';
+		clearTimeout(debounceTimer);
 	}
 
 	function logoSlide(node: HTMLElement, { duration = 200 }) {
@@ -71,7 +104,7 @@
 
 <svelte:window bind:scrollY={y} />
 
-<div class="relative z-10 hidden border-b border-slate-100 bg-primary px-6 pt-4 lg:flex">
+<div class="relative z-50 hidden border-b border-slate-100 bg-primary px-6 pt-4 lg:flex">
 	<div class="mx-auto flex w-full max-w-7xl items-center justify-between">
 		<a href="/">
 			<img src={Logo} alt="Logo PC IKPM Gontor Surabaya" class="h-10 w-auto max-w-none lg:h-20" />
@@ -116,8 +149,8 @@
 						type="text"
 						placeholder="Search posts..."
 						bind:value={searchQuery}
-						oninput={performSearch}
-						onfocus={() => searchQuery.length >= 2 && (showDropdown = true)}
+						oninput={handleSearchInput}
+						onfocus={() => searchQuery.length >= 3 && (showDropdown = true)}
 						class="w-64 rounded-full border-none bg-slate-100 py-2 pr-4 pl-10 text-sm focus:shadow-green-600 focus:outline-2 focus:outline-green-600/50"
 					/>
 				</div>
@@ -146,11 +179,25 @@
 											onclick={closeSearch}
 											class="group flex items-start gap-4 rounded-xl p-3 transition-colors hover:bg-slate-50"
 										>
+											<!-- Container Gambar -->
 											<div
-												class="mt-1 rounded-lg bg-slate-100 p-2 text-slate-400 transition-colors group-hover:bg-green-100 group-hover:text-green-600"
+												class="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100 transition-colors group-hover:bg-green-100"
 											>
-												<FileText size={18} />
+												{#if post.featured_image?.path}
+													<img
+														src={post.featured_image.path}
+														alt={post.title}
+														class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+													/>
+												{:else}
+													<div
+														class="flex h-full w-full items-center justify-center text-slate-400 group-hover:text-green-600"
+													>
+														<FileText size={18} />
+													</div>
+												{/if}
 											</div>
+
 											<div class="flex-1 overflow-hidden">
 												<h4
 													class="truncate text-sm font-bold text-slate-800 transition-colors group-hover:text-green-600"
@@ -160,6 +207,12 @@
 												<p class="truncate text-xs text-slate-500">
 													{post.excerpt || 'No description available'}
 												</p>
+												<!-- Opsional: Info Author -->
+												<div class="mt-1 flex items-center gap-1 opacity-60">
+													<span class="text-[10px] text-slate-400"
+														>By {post.author?.name || 'Unknown'}</span
+													>
+												</div>
 											</div>
 										</a>
 									{/each}
@@ -173,22 +226,6 @@
 					</div>
 				{/if}
 			</div>
-
-			{#if data.user}
-				<div class="flex items-center gap-3 border-l border-slate-200 pl-6">
-					<div class="text-right leading-none">
-						<p class="text-sm font-bold text-slate-800">{data.user.name}</p>
-						<span class="text-[10px] font-medium tracking-widest text-indigo-500 uppercase"
-							>{data.user.role}</span
-						>
-					</div>
-					<img
-						src={data.user.image || `https://ui-avatars.com/api/?name=${data.user.name}`}
-						alt=""
-						class="h-9 w-9 rounded-full ring-2 ring-indigo-50 transition-all hover:ring-indigo-200"
-					/>
-				</div>
-			{/if}
 		</div>
 	</div>
 </nav>
@@ -217,7 +254,7 @@
 	<button
 		type="button"
 		transition:fade={{ duration: 150 }}
-		class="fixed inset-0 z-5 hidden h-full w-full cursor-default border-none bg-slate-900/5 backdrop-blur-[2px] lg:block"
+		class="fixed inset-0 z-10 hidden h-full w-full cursor-default border-none bg-slate-900/5 backdrop-blur-[2px] lg:block"
 		onclick={() => (showDropdown = false)}
 		aria-label="Close search"
 	></button>

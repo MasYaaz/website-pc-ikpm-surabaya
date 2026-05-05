@@ -7,16 +7,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 	const pathname = url.pathname;
 
 	// --- LOGIKA REDIRECT ---
-
-	// 1. Jika akses root '/contributor', arahkan ke dashboard atau login
-	if (pathname === '/contributor' || pathname === '/contributor/') {
-		if (!isLoggedIn) {
-			throw redirect(302, '/contributor/login');
-		}
-		throw redirect(302, '/contributor/dashboard');
-	}
-
-	// 2. Proteksi Grup Rute Internal (/dashboard, /posts, /options)
+	// Proteksi Grup Rute Internal (/dashboard, /posts, /options)
 	const isInternalRoute =
 		pathname.startsWith('/contributor/dashboard') ||
 		pathname.startsWith('/contributor/posts') ||
@@ -28,7 +19,7 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		}
 
 		// Validasi status akun dari cache/DB
-		if (user.status === 'nonactive') {
+		if (user.status === 'nonactive' && !pathname.includes('/onboarding')) {
 			throw redirect(302, '/contributor/onboarding');
 		}
 	}

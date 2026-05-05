@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			`
             *,
             author:author_id (
-                name:display_name, 
+                name:name, 
                 avatar_url,
                 role
             ),

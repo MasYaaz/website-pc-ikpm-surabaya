@@ -22,8 +22,11 @@ export const GET = async ({ url, locals: { supabase } }) => {
                 excerpt,
                 created_at,
                 author:author_id (
-                    name,
-                    avatar_url
+                    name
+                ),
+				featured_image:featured_image_id (
+                    path,
+                    alt_text
                 )
             `
 			)

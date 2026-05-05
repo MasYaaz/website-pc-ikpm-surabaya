@@ -1,17 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import {
-		Plus,
-		Search,
-		MoreVertical,
-		FileText,
-		ExternalLink,
-		Trash2,
-		Edit3,
-		Loader2,
-		LoaderCircle,
-		PenLine
-	} from 'lucide-svelte';
+	import SEO from '$lib/component/page/SEO.svelte';
+	import { Plus, Search, FileText, Trash2, LoaderCircle, PenLine } from 'lucide-svelte';
 	import { fade, fly } from 'svelte/transition';
 
 	// Props dari +page.ts / +page.server.ts
@@ -37,14 +27,9 @@
 			year: 'numeric'
 		});
 	};
-
-	// Fungsi hapus draf (memanggil server-side action)
-	async function deletePost(id: number) {
-		if (!confirm('Hapus artikel ini? Tindakan ini tidak bisa dibatalkan.')) return;
-		isDeleting = id;
-	}
 </script>
 
+<SEO title="Artikel" />
 <div class="mx-auto max-w-6xl px-6 py-10" in:fade>
 	<div class="mb-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
 		<div>

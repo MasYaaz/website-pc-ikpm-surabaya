@@ -6,6 +6,6 @@
 	let isSidebarOpen = $state(false);
 </script>
 
-<Navbar bind:isSidebarOpen {data} />
+<Navbar bind:isSidebarOpen />
 <Sidebar bind:isSidebarOpen {data} />
 {@render children()}

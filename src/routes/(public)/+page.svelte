@@ -49,64 +49,101 @@
 
 <div class="min-h-screen bg-primary font-sans antialiased">
 	{#if featuredPosts.length > 0}
-		<section class="relative h-137.5 w-full overflow-hidden bg-stone-950">
+		<section class="relative h-[75vh] min-h-125 w-full overflow-hidden bg-stone-950 md:h-[85vh]">
 			{#key currentSlide}
-				<div in:fade={{ duration: 800 }} out:fade={{ duration: 400 }} class="absolute inset-0 z-5">
+				<div in:fade={{ duration: 800 }} out:fade={{ duration: 500 }} class="absolute inset-0">
 					<div
-						class="absolute inset-0 z-5 bg-linear-to-r from-stone-950 via-stone-950/40 to-transparent"
+						class="absolute inset-0 z-10 bg-linear-to-t from-stone-950 via-stone-950/40 to-transparent md:bg-linear-to-r"
 					></div>
 
 					<img
 						src={featuredPosts[currentSlide].featuredImage?.path}
 						alt={featuredPosts[currentSlide].featuredImage?.alt_text}
-						class="absolute inset-0 flex h-full w-full items-center justify-center bg-stone-900 object-cover"
+						class="absolute inset-0 h-full w-full object-cover"
 					/>
 
-					<div class="relative z-5 mx-auto flex h-full max-w-7xl flex-col justify-center px-6">
-						<div in:fly={{ x: -40, duration: 800, delay: 150 }} class="max-w-2xl">
-							<span
-								class="mb-4 inline-block rounded-full bg-indigo-500/20 px-4 py-1 text-[10px] font-black tracking-widest text-indigo-400 uppercase"
+					<div
+						class="relative z-20 mx-auto flex h-full max-w-7xl items-end px-6 pb-20 md:items-center md:pb-0"
+					>
+						<div
+							in:fly={{ y: 30, x: 0, duration: 800, delay: 200 }}
+							class="max-w-3xl md:in:fly={{ x: -50, y: 0 }}"
+						>
+							<div class="mb-4 flex items-center gap-3">
+								<span
+									class="inline-block rounded-full bg-green-800 px-3 py-1 text-[10px] font-bold tracking-wider text-white uppercase"
+								>
+									Editor's Pick
+								</span>
+								<span class="text-xs font-medium text-white">
+									{new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+								</span>
+							</div>
+
+							<h1
+								class="mb-4 text-4xl leading-[1.1] font-black text-white sm:text-5xl md:mb-6 md:text-7xl"
 							>
-								Featured Intelligence
-							</span>
-							<h1 class="mb-6 text-4xl leading-tight font-black text-white md:text-6xl">
 								{featuredPosts[currentSlide].title}
 							</h1>
-							<p class="mb-8 line-clamp-2 text-lg text-stone-400">
+
+							<p
+								class="mb-8 line-clamp-2 max-w-xl text-base text-stone-300 md:text-xl md:leading-relaxed"
+							>
 								{featuredPosts[currentSlide].excerpt ||
 									'Explore our latest analysis and official organizational updates.'}
 							</p>
-							<a
-								href="/posts/{featuredPosts[currentSlide].slug}"
-								class="inline-flex items-center gap-3 rounded-full bg-white px-8 py-4 text-sm font-bold text-stone-950 transition-all hover:bg-indigo-500 hover:text-white"
-							>
-								Read Investigation <ArrowRight size={18} />
-							</a>
-						</div>
-						<div class="absolute right-6 bottom-12 z-30 flex gap-3 md:right-12">
-							<button
-								onclick={prevSlide}
-								class="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-white transition-all hover:bg-white hover:text-stone-950"
-							>
-								<ChevronLeft size={20} />
-							</button>
-							<button
-								onclick={nextSlide}
-								class="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-white transition-all hover:bg-white hover:text-stone-950"
-							>
-								<ChevronRight size={20} />
-							</button>
+
+							<div class="flex flex-wrap items-center gap-4">
+								<a
+									href="/posts/{featuredPosts[currentSlide].slug}"
+									class="group inline-flex items-center gap-3 rounded-xl bg-white px-8 py-4 text-sm font-bold text-stone-950 transition-all hover:bg-indigo-500 hover:text-white active:scale-95"
+								>
+									Buka Artikel
+									<ArrowRight size={18} class="transition-transform group-hover:translate-x-1" />
+								</a>
+							</div>
 						</div>
 					</div>
 				</div>
 			{/key}
+
+			<div class="absolute right-6 bottom-10 z-30 hidden items-center gap-6 md:right-12 md:flex">
+				<div class="flex gap-2">
+					<button
+						onclick={prevSlide}
+						class="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-stone-900/40 text-white backdrop-blur-md transition-all hover:bg-white hover:text-stone-950"
+						aria-label="Previous slide"
+					>
+						<ChevronLeft size={24} />
+					</button>
+					<button
+						onclick={nextSlide}
+						class="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-stone-900/40 text-white backdrop-blur-md transition-all hover:bg-white hover:text-stone-950"
+						aria-label="Next slide"
+					>
+						<ChevronRight size={24} />
+					</button>
+				</div>
+			</div>
+
+			<div class="absolute bottom-6 left-1/2 z-30 flex -translate-x-1/2 gap-2 md:hidden">
+				{#each featuredPosts as _, i}
+					<button
+						aria-label="change slide"
+						onclick={() => (currentSlide = i)}
+						class="h-1.5 rounded-full transition-all {currentSlide === i
+							? 'w-8 bg-green-500'
+							: 'w-2 bg-white/30'}"
+					></button>
+				{/each}
+			</div>
 		</section>
 	{/if}
 
 	<main class="mx-auto max-w-7xl px-6 py-24">
 		<div class="mb-16 border-b border-stone-100 pb-8">
-			<h2 class="text-3xl font-black tracking-tight text-stone-900">Latest Intelligence.</h2>
-			<p class="mt-2 font-medium text-stone-500">Arsip lengkap publikasi dan riset terbaru kami.</p>
+			<h2 class="text-3xl font-black tracking-tight text-stone-900">Artikel Terbaru</h2>
+			<p class="mt-2 font-medium text-stone-500">Cari berita terbaru disini.</p>
 		</div>
 
 		{#if displayPosts.length > 0}
@@ -145,7 +182,7 @@
 							</div>
 
 							<h3
-								class="mb-4 text-2xl leading-tight font-bold text-stone-900 transition-colors group-hover:text-indigo-600"
+								class="mb-4 text-2xl leading-tight font-bold text-stone-900 transition-colors group-hover:text-green-800"
 							>
 								<a href="/posts/{post.slug}">{post.title}</a>
 							</h3>
